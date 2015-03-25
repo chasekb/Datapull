@@ -1,5 +1,7 @@
-import factory.ObservationImplFactory;
-import impl.ObservationImpl;
+package services;
+
+import factory.ObservableImplFactory;
+import impl.ObservableImpl;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -7,8 +9,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.time.LocalDate;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -18,17 +19,23 @@ import java.util.logging.Logger;
 public class UrlOpener extends Thread {
 
     private static final Logger log = Logger.getLogger(UrlOpener.class.getName());
-    private static ConcurrentHashMap<LocalDate, ObservationImpl> chm;
+    private static ConcurrentHashMap<LocalDate, ObservableImpl> chm;
     private static CopyOnWriteArrayList<LocalDate> keys;
+    private static ExecutorService es;
     private static String line;
+    private static int maxThreads;
+    private static String ticker;
     private static URL url;
     private static HttpURLConnection urlConnection;
 
-    public UrlOpener(URL urlIn) {
+    public UrlOpener(String stock, URL urlIn) {
         chm = new ConcurrentHashMap();
         keys = new CopyOnWriteArrayList<LocalDate>();
         line = "";
+        ticker = stock;
         url = urlIn;
+        maxThreads = 2;
+        es = Executors.newFixedThreadPool(maxThreads);
         System.out.println("Received " + url);
     }
 
@@ -49,6 +56,7 @@ public class UrlOpener extends Thread {
 
             urlConnection.disconnect();
             br.close();
+            es.shutdown();
             //getKeys();
 
         } catch (IOException ioe) { ioe.printStackTrace(); }
@@ -56,7 +64,7 @@ public class UrlOpener extends Thread {
 
     private static void getKeys() {
         for (LocalDate ld : keys) {
-            ObservationImpl o = null;
+            ObservableImpl o = null;
             System.out.print(ld + " ");
             o = chm.get(ld);
             System.out.println(o.getClose());
@@ -71,7 +79,6 @@ public class UrlOpener extends Thread {
     }
 
     private static void setObservation(String lineIn) {
-        ObservationImplFactory.create(lineIn);
-
+        es.execute(ObservableImplFactory.create(ticker, lineIn));
     }
 }

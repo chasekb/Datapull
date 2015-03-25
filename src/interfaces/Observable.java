@@ -5,7 +5,7 @@ import java.time.LocalDate;
 /**
  * Created by kahlil on 3/21/15.
  */
-public interface Observation {
+public interface Observable {
     LocalDate getLd();
     float getClose();
     float getHigh();
